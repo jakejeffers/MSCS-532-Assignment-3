@@ -1,43 +1,50 @@
 import random
+import time
+import copy
 
-def randomized_quicksort(arr):
-    """Performs the randomized quicksort algorithm on the input array."""
-    # Edge case: if the array has 0 or 1 elements, it's already sorted.
+def deterministic_quicksort(arr):
     if len(arr) <= 1:
         return arr
+    pivot = arr[0]  # Use the first element as the pivot
+    left = [x for x in arr[1:] if x <= pivot]
+    right = [x for x in arr[1:] if x > pivot]
+    return deterministic_quicksort(left) + [pivot] + deterministic_quicksort(right)
 
-    # Helper function to partition the array around a random pivot.
-    def partition(arr, low, high):
-        # Randomly select a pivot index and swap it with the last element.
-        pivot_index = random.randint(low, high)
-        arr[pivot_index], arr[high] = arr[high], arr[pivot_index]
-        pivot = arr[high]
-        
-        # Partitioning logic
-        i = low - 1  # This will be the "wall" position
+def randomized_quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot_index = random.randint(0, len(arr) - 1)
+    pivot = arr[pivot_index]
+    left = [x for i, x in enumerate(arr) if x <= pivot and i != pivot_index]
+    right = [x for i, x in enumerate(arr) if x > pivot and i != pivot_index]
+    return randomized_quicksort(left) + [pivot] + randomized_quicksort(right)
+def run_experiment(sort_func, array):
+    start_time = time.time()
+    sort_func(copy.deepcopy(array))  # Use a copy to keep original array unchanged
+    return time.time() - start_time
 
-        for j in range(low, high):
-            if arr[j] <= pivot:
-                i += 1
-                arr[i], arr[j] = arr[j], arr[i]
+def generate_arrays(size):
+    random_array = [random.randint(0, 100) for _ in range(size)]
+    sorted_array = sorted(random_array)
+    reverse_sorted_array = sorted_array[::-1]
+    repeated_elements_array = [random.choice([5, 10, 15]) for _ in range(size)]
+    return random_array, sorted_array, reverse_sorted_array, repeated_elements_array
 
-        # Move pivot to the correct location
-        arr[i + 1], arr[high] = arr[high], arr[i + 1]
-        return i + 1
+# Sizes for testing
+sizes = [100, 500, 1000, 5000, 10000]
+results = {}
 
-    def quicksort_recursive(arr, low, high):
-        if low < high:
-            # Get the pivot index after partitioning.
-            pivot_index = partition(arr, low, high)
-            # Recursively apply quicksort to the subarrays
-            quicksort_recursive(arr, low, pivot_index - 1)
-            quicksort_recursive(arr, pivot_index + 1, high)
+for size in sizes:
+    arrays = generate_arrays(size)
+    results[size] = {
+        "Random": arrays[0],
+        "Sorted": arrays[1],
+        "Reverse Sorted": arrays[2],
+        "Repeated Elements": arrays[3]
+    }
+    print(f"\nSize: {size}")
 
-    # Call the recursive quicksort function on the full array.
-    quicksort_recursive(arr, 0, len(arr) - 1)
-    return arr  # The array is sorted in-place and returned.
-
-# Example Usage:
-arr = [3, 6, 8, 10, 1, 2, 1]
-sorted_arr = randomized_quicksort(arr)
-print("Sorted array:", sorted_arr)
+    for array_type, array in results[size].items():
+        det_time = run_experiment(deterministic_quicksort, array)
+        rand_time = run_experiment(randomized_quicksort, array)
+        print(f"{array_type} Array - Deterministic: {det_time:.5f} s, Randomized: {rand_time:.5f} s")
